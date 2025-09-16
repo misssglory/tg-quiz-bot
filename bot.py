@@ -8,6 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from aiogram import F
 import db
 import quiz
+import quiz_data
 
 # Включаем логирование, чтобы не пропустить важные сообщения
 logging.basicConfig(level=logging.INFO)
@@ -60,7 +61,7 @@ async def right_answer(callback: types.CallbackQuery):
     await db.update_quiz_index(callback.from_user.id, current_question_index)
 
 
-    if current_question_index < len(db.quiz_data):
+    if current_question_index < len(quiz_data.quiz_data):
         await quiz.get_question(callback.message, callback.from_user.id)
     else:
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")
@@ -76,16 +77,16 @@ async def wrong_answer(callback: types.CallbackQuery):
 
     # Получение текущего вопроса из словаря состояний пользователя
     current_question_index = await db.get_quiz_index(callback.from_user.id)
-    correct_option = db.quiz_data[current_question_index]['correct_option']
+    correct_option = quiz_data.quiz_data[current_question_index]['correct_option']
 
-    await callback.message.answer(f"Неправильно. Правильный ответ: {db.quiz_data[current_question_index]['options'][correct_option]}")
+    await callback.message.answer(f"Неправильно. Правильный ответ: {quiz_data.quiz_data[current_question_index]['options'][correct_option]}")
 
     # Обновление номера текущего вопроса в базе данных
     current_question_index += 1
     await db.update_quiz_index(callback.from_user.id, current_question_index)
 
 
-    if current_question_index < len(db.quiz_data):
+    if current_question_index < len(quiz_data.quiz_data):
         await quiz.get_question(callback.message, callback.from_user.id)
     else:
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")

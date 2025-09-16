@@ -1,6 +1,7 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 import db
 from aiogram import types
+import quiz_data
 
 async def new_quiz(message):
     # получаем id пользователя, отправившего сообщение
@@ -18,15 +19,15 @@ async def get_question(message, user_id):
     # Запрашиваем из базы текущий индекс для вопроса
     current_question_index = await db.get_quiz_index(user_id)
     # Получаем индекс правильного ответа для текущего вопроса
-    correct_index = db.quiz_data[current_question_index]['correct_option']
+    correct_index = quiz_data.quiz_data[current_question_index]['correct_option']
     # Получаем список вариантов ответа для текущего вопроса
-    opts = db.quiz_data[current_question_index]['options']
+    opts = quiz_data.quiz_data[current_question_index]['options']
 
     # Функция генерации кнопок для текущего вопроса квиза
     # В качестве аргументов передаем варианты ответов и значение правильного ответа (не индекс!)
     kb = generate_options_keyboard(opts, opts[correct_index])
     # Отправляем в чат сообщение с вопросом, прикрепляем сгенерированные кнопки
-    await message.answer(f"{db.quiz_data[current_question_index]['question']}", reply_markup=kb)
+    await message.answer(f"{quiz_data.quiz_data[current_question_index]['question']}", reply_markup=kb)
 
 def generate_options_keyboard(answer_options, right_answer):
   # Создаем сборщика клавиатур типа Inline
