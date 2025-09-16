@@ -45,30 +45,8 @@ async def cmd_quiz(message: types.Message):
     await quiz.new_quiz(message)
 
 
-@dp.callback_query(F.data == "right_answer")
-async def right_answer(callback: types.CallbackQuery):
-
-    await callback.bot.edit_message_reply_markup(
-        chat_id=callback.from_user.id,
-        message_id=callback.message.message_id,
-        reply_markup=None
-    )
-
-    await callback.message.answer("Верно!")
-    current_question_index = await db.get_quiz_index(callback.from_user.id)
-    # Обновление номера текущего вопроса в базе данных
-    current_question_index += 1
-    await db.update_quiz_index(callback.from_user.id, current_question_index)
-
-
-    if current_question_index < len(quiz_data.quiz_data):
-        await quiz.get_question(callback.message, callback.from_user.id)
-    else:
-        await callback.message.answer("Это был последний вопрос. Квиз завершен!")
-
-
-@dp.callback_query(F.data == "wrong_answer")
-async def wrong_answer(callback: types.CallbackQuery):
+@dp.callback_query(quiz.ButtonCallback.filter())
+async def process_answer(callback: types.CallbackQuery, callback_data: quiz.ButtonCallback):
     await callback.bot.edit_message_reply_markup(
         chat_id=callback.from_user.id,
         message_id=callback.message.message_id,
@@ -77,10 +55,14 @@ async def wrong_answer(callback: types.CallbackQuery):
 
     # Получение текущего вопроса из словаря состояний пользователя
     current_question_index = await db.get_quiz_index(callback.from_user.id)
-    correct_option = quiz_data.quiz_data[current_question_index]['correct_option']
-
-    await callback.message.answer(f"Неправильно. Правильный ответ: {quiz_data.quiz_data[current_question_index]['options'][correct_option]}")
-
+    correct_option = quiz_data.quiz_data[current_question_index]['correct_option'] 
+    await callback.message.answer(f"Ваш ответ: {callback_data.text}")
+    ans = callback_data.action == "right_answer"
+    ans_text = "Верно" if ans else "Неверно"
+    await callback.message.answer(ans_text)
+    if not ans:
+        await callback.message.answer(f"Правильный ответ: {quiz_data.quiz_data[current_question_index]['options'][correct_option]}")
+    
     # Обновление номера текущего вопроса в базе данных
     current_question_index += 1
     await db.update_quiz_index(callback.from_user.id, current_question_index)
@@ -90,6 +72,7 @@ async def wrong_answer(callback: types.CallbackQuery):
         await quiz.get_question(callback.message, callback.from_user.id)
     else:
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")
+
 
 
 # Запуск процесса поллинга новых апдейтов

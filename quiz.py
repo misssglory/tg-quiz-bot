@@ -2,6 +2,11 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 import db
 from aiogram import types
 import quiz_data
+from aiogram.filters.callback_data import CallbackData
+
+class ButtonCallback(CallbackData, prefix="btn"):
+    action: str
+    text: str
 
 async def new_quiz(message):
     # получаем id пользователя, отправившего сообщение
@@ -35,13 +40,19 @@ def generate_options_keyboard(answer_options, right_answer):
 
     # В цикле создаем 4 Inline кнопки, а точнее Callback-кнопки
     for option in answer_options:
+        cbd = ButtonCallback(
+            action="right_answer" if option == right_answer else "wrong_answer",
+            text=option
+        ).pack()
+        
         builder.add(types.InlineKeyboardButton(
             # Текст на кнопках соответствует вариантам ответов
             text=option,
             # Присваиваем данные для колбэк запроса.
             # Если ответ верный сформируется колбэк-запрос с данными 'right_answer'
             # Если ответ неверный сформируется колбэк-запрос с данными 'wrong_answer'
-            callback_data="right_answer" if option == right_answer else "wrong_answer")
+            callback_data=cbd
+            )
         )
 
     # Выводим по одной кнопке в столбик
