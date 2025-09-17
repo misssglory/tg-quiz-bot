@@ -31,6 +31,7 @@ async def cmd_start(message: types.Message):
     builder = ReplyKeyboardBuilder()
     # Добавляем в сборщик одну кнопку
     builder.add(types.KeyboardButton(text="Начать игру"))
+    builder.add(types.KeyboardButton(text="Рейтинг"))
     # Прикрепляем кнопки к сообщению
     await message.answer("Добро пожаловать в квиз!", reply_markup=builder.as_markup(resize_keyboard=True))
 
@@ -44,6 +45,24 @@ async def cmd_quiz(message: types.Message):
     # Запускаем новый квиз
     await quiz.new_quiz(message)
 
+@dp.message(F.text=="Рейтинг")
+@dp.message(Command("leaders"))
+async def cmd_quiz(message: types.Message):
+    # Отправляем новое сообщение без кнопок
+    # await message.answer(f"Давайте начнем квиз!")
+    # Запускаем новый квиз
+    # await quiz.new_quiz(message)
+    leaderboard = await db.get_leaderboard()
+    stats = await db.get_quiz_completion_stats()
+    await message.answer(str(stats))
+    # await message.answer(str(lb))
+    lb_text = ""
+    for rank, (user_id, score, total_answers) in enumerate(leaderboard, 1):
+        user = await bot.get_chat(user_id)
+        username = user.username
+        lb_text += f"#{rank}: User {username} - {score}/{total_answers}\n"
+
+    await message.answer(lb_text)
 
 @dp.callback_query(quiz.ButtonCallback.filter())
 async def process_answer(callback: types.CallbackQuery, callback_data: quiz.ButtonCallback):
@@ -66,13 +85,12 @@ async def process_answer(callback: types.CallbackQuery, callback_data: quiz.Butt
     # Обновление номера текущего вопроса в базе данных
     current_question_index += 1
     await db.update_quiz_index(callback.from_user.id, current_question_index)
-
+    await db.add_user_answer(callback.from_user.id, current_question_index, ans)
 
     if current_question_index < len(quiz_data.quiz_data):
-        await quiz.get_question(callback.message, callback.from_user.id)
+            await quiz.get_question(callback.message, callback.from_user.id)
     else:
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")
-
 
 
 # Запуск процесса поллинга новых апдейтов
