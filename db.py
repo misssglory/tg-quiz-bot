@@ -149,18 +149,20 @@ async def get_top_users_by_completion():
             results = await cursor.fetchall()
             return results
 
-async def get_leaderboard():
+async def get_leaderboard(uid = None):
     """
     Return a leaderboard with all users sorted by score and completion
     
     Returns:
         List of tuples (user_id, score, total_answers) sorted by score descending
     """
+    _where = f"WHERE user_id = {uid}" if uid is not None else ""
     async with aiosqlite.connect(DB_NAME) as db:
-        async with db.execute('''SELECT user_id, 
+        async with db.execute(f'''SELECT user_id, 
                               SUM(CASE WHEN is_question_right = 1 THEN 1 ELSE 0 END) as score,
                               COUNT(*) as total_answers
                               FROM user_answers 
+                              {_where}
                               GROUP BY user_id
                               ORDER BY score DESC, total_answers DESC, user_id''') as cursor:
             results = await cursor.fetchall()

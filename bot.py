@@ -45,6 +45,15 @@ async def cmd_quiz(message: types.Message):
     # Запускаем новый квиз
     await quiz.new_quiz(message)
 
+
+async def print_leaderboard(leaderboard):
+    lb_text = ""
+    for rank, (user_id, score, total_answers) in enumerate(leaderboard, 1):
+        user = await bot.get_chat(user_id)
+        username = user.username
+        lb_text += f"#{rank}: User {username} - {score}/{total_answers}\n"
+    return lb_text
+
 @dp.message(F.text=="Рейтинг")
 @dp.message(Command("leaders"))
 async def cmd_quiz(message: types.Message):
@@ -56,13 +65,8 @@ async def cmd_quiz(message: types.Message):
     stats = await db.get_quiz_completion_stats()
     await message.answer(str(stats))
     # await message.answer(str(lb))
-    lb_text = ""
-    for rank, (user_id, score, total_answers) in enumerate(leaderboard, 1):
-        user = await bot.get_chat(user_id)
-        username = user.username
-        lb_text += f"#{rank}: User {username} - {score}/{total_answers}\n"
 
-    await message.answer(lb_text)
+    await message.answer(await print_leaderboard(leaderboard))
 
 @dp.callback_query(quiz.ButtonCallback.filter())
 async def process_answer(callback: types.CallbackQuery, callback_data: quiz.ButtonCallback):
@@ -91,6 +95,8 @@ async def process_answer(callback: types.CallbackQuery, callback_data: quiz.Butt
             await quiz.get_question(callback.message, callback.from_user.id)
     else:
         await callback.message.answer("Это был последний вопрос. Квиз завершен!")
+        lb = await db.get_leaderboard(callback.from_user.id)
+        await callback.message.answer(f"Ваша статистика: {await print_leaderboard(lb)}")
 
 
 # Запуск процесса поллинга новых апдейтов
